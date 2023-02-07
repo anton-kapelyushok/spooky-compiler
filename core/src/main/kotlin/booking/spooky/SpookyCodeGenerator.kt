@@ -17,42 +17,19 @@ class SpookyCodeGenerator(
     val cus: List<CompilationUnitTree>,
     val task: JavacTask,
 ) {
-    val elements = task.elements as JavacElements
-
     val namer = Namer()
-
-    class Ctx(
-        val parentCtx: Ctx? = null,
-        val data: MutableMap<Any, Any> = mutableMapOf(),
-    ) {
-        companion object {
-            val PACKAGE_PREFIX = Any()
-            val GLOBAL_CONTEXT = Any()
-        }
-
-        var modulePrefix: String
-            get() = (data[PACKAGE_PREFIX] ?: parentCtx?.modulePrefix) as String
-            set(v) {
-                data[PACKAGE_PREFIX] = v
-            }
-
-        fun createChild(): Ctx {
-            return Ctx(this)
-        }
-    }
-
 
     class SymTable(
         val namer: Namer,
         val parent: SymTable? = null
-    ) {
+    )
+    {
         constructor(symTable: SymTable) :
                 this(symTable.namer, symTable) {
         }
 
         val symbols = mutableMapOf<Any, PSymbol>()
 
-        fun addClass() {}
 
         fun addSelf(): PSymbol {
             symbols[SelfKey] = PSymbol(namer.nameFor("self"), "self")
@@ -71,13 +48,6 @@ class SpookyCodeGenerator(
             return symbols[sym]!!
         }
 
-        fun addThis(
-            sym: Symbol.ClassSymbol
-        ): PSymbol {
-            symbols[ThisKey(sym)] = PSymbol(namer.nameFor("this"), "this")
-            return symbols[ThisKey(sym)]!!
-        }
-
         fun addVar(
             sym: Symbol,
             name: String
@@ -87,12 +57,6 @@ class SpookyCodeGenerator(
             return symbols[sym]!!
         }
 
-        fun getThis(
-            type: Symbol.ClassSymbol,
-        ): PSymbol? {
-            return symbols[ThisKey(type)] ?: parent?.getThis(type)
-        }
-
         fun psymbol(sym: Symbol): PSymbol? {
             return symbols[sym] ?: parent?.psymbol(sym)
         }
@@ -100,8 +64,6 @@ class SpookyCodeGenerator(
         fun generateName(name: String): String {
             return namer.nameFor(name)
         }
-
-        data class ThisKey(val type: Symbol.ClassSymbol)
 
         object SelfKey
 
@@ -114,47 +76,6 @@ class SpookyCodeGenerator(
             return name + "_${++i}";
         }
     }
-
-    inner class GlobalSymbolsResolver(
-        val symTable: SymTable,
-    ) : TreePathScanner<Unit?, Unit>() {
-
-        override fun visitClass(node: ClassTree, p: Unit): Unit? {
-
-            if (node.sym!!.packge().fullname.startsWith("perl")) {
-                return super.visitClass(node, p)
-            }
-
-            if (node.kind == Tree.Kind.ENUM) {
-                error("met enum $node")
-            }
-
-            if (node.kind != Tree.Kind.CLASS && node.kind != Tree.Kind.RECORD && node.kind != Tree.Kind.INTERFACE) {
-                error("unknown type ${node.kind} met $node")
-            }
-
-            val ifaces = implementedInterfaces(node)
-
-            when {
-                "perl.PerlModule" in ifaces -> {
-                    symTable.addModule(
-                        node.sym as Symbol.ClassSymbol,
-                        (node.sym!!.packge().fullname.toString() + "." + node.sym!!.name.toString())
-                            .replace(".", "::")
-                    )
-                }
-
-                "perl.PerlDto" in ifaces -> {}
-
-                node.kind == Tree.Kind.INTERFACE -> Unit
-
-                else -> error("Plain declarations not allowed for $node")
-            }
-
-            return super.visitClass(node, p)
-        }
-    }
-
 
     fun compile(cus: List<CompilationUnitTree>, symTable: SymTable): List<PModule> {
         val modules = mutableListOf<PModule>()
