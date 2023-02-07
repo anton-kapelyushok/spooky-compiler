@@ -2,7 +2,7 @@ package perl;
 
 import java.util.function.Function;
 
-public class ArrayRef<T> {
+public final class ArrayRef<T> {
     @PerlIntrinsic
     public <R> ArrayRef<R> map(Function<T, R> mapper) {
         return null;

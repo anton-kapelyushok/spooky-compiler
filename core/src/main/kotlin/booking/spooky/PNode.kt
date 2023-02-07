@@ -117,6 +117,14 @@ open class PUndef() : PExpression() {
     }
 }
 
+open class PNewArrayRef(
+    val elements: MutableList<PExpression> = mutableListOf(),
+) : PExpression() {
+    override fun toString(): String {
+        return "[" + elements.joinToString(", ") + "]"
+    }
+}
+
 open class PGenericLiteral(val v: String) : PLiteral() {
     override fun toString(): String {
         return v
@@ -156,3 +164,9 @@ open class PNewHashRef(
 open class PReturn(
     val expr: PExpression?
 ) : PStatement()
+
+open class PArrayMap(
+    val array: PExpression,
+    val mapper: PExpression,
+    val tmpName: String,
+) : PExpression()

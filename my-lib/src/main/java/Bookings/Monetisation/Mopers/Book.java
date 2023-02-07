@@ -48,8 +48,10 @@ public class Book implements PerlModule {
         return momo_responses.map(it -> it.momo());
     }
 
-    public void testMethod(GenerateMopersPayloadForNewReservationArgs args) {
-        var poupa = args.room_reservations.get(0).currencycode;
+    public void testMethod(ArrayRef<Integer> numbers) {
+        numbers.map(it -> {
+            return pricingModule._summary_for_stay(it, it);
+        });
     }
 
     public record GenerateMopersPayloadForNewReservationArgs(

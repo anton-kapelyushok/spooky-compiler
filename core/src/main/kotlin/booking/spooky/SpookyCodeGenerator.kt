@@ -9,7 +9,6 @@ import com.sun.tools.javac.api.JavacTrees
 import com.sun.tools.javac.code.Symbol
 import com.sun.tools.javac.code.Symbol.ClassSymbol
 import com.sun.tools.javac.code.Type
-import com.sun.tools.javac.code.Types
 import com.sun.tools.javac.model.JavacElements
 import javax.lang.model.element.Modifier
 
@@ -96,6 +95,10 @@ class SpookyCodeGenerator(
 
         fun psymbol(sym: Symbol): PSymbol? {
             return symbols[sym] ?: parent?.psymbol(sym)
+        }
+
+        fun generateName(name: String): String {
+            return namer.nameFor(name)
         }
 
         data class ThisKey(val type: Symbol.ClassSymbol)
@@ -458,8 +461,7 @@ class SpookyCodeGenerator(
                     error("Cannot instantiate $expr")
                 }
                 if ("perl.ArrayRef" == sym.fullname.toString()) {
-                    // TODO
-                    return PUndef()
+                    return PNewArrayRef()
                 }
                 if ("perl.PerlDto" in implementedInterfaces(sym)) {
                     val recordComponents = sym.recordComponents
@@ -507,6 +509,18 @@ class SpookyCodeGenerator(
                         PString(methodSelect.identifier.toString())
                     )
                 }
+
+                if ("perl.ArrayRef" == methodSelect.expression.type!!.tsym.toString()) {
+                    if (methodSelect.identifier.toString() == "map") {
+                        val tmpName = symTable.generateName("sub")
+                        return PArrayMap(
+                            compileExpression(methodSelect.expression, symTable),
+                            pArguments.toMutableList()[0],
+                            tmpName
+                        )
+                    }
+                }
+
                 return PMethodCall(
                     compileExpression(methodSelect.expression, symTable),
                     methodSelect.identifier.toString(),

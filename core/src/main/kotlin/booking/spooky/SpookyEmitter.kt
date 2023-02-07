@@ -31,9 +31,52 @@ class SpookyEmitter {
             is PLambda -> emitLambda(node, content, ident)
             is PNewHashRef -> emitNewHashRef(node, content, ident)
             is PNumber -> emitNumber(node, content, ident)
-            else -> println("Unknown node type ${node::class.simpleName}")
-//            else -> error("Unknown node type ${node::class.simpleName}")
+            is PNewArrayRef -> emitNewArrayRef(node, content, ident)
+            is PArrayMap -> emitArrayMap(node, content, ident)
+//            else -> println("Unknown node type ${node::class.simpleName}")
+            else -> error("Unknown node type ${node::class.simpleName}")
         }
+    }
+
+
+    private fun emitArrayMap(node: PArrayMap, content: StringBuilder, ident: String) {
+        // [ map {
+        content.append("[ map {\n")
+
+        // my $tmp = ... ;
+        val i1 = ident + oneIdent
+        val pIdentifier = PIdent(node.tmpName)
+        val valDecl = PVarDecl(pIdentifier, node.mapper)
+        emitNode(valDecl, content, i1)
+
+        // $tmp->($_)
+        content.append(i1)
+        emitNode(pIdentifier, content, i1)
+        content.append("->(\$_);\n")
+
+
+        // } $arr_ref->@* ];
+        content.append(ident)
+        content.append("} ")
+        emitNode(node.array, content, ident)
+        content.append("->@* ]")
+    }
+
+    private fun emitNewArrayRef(node: PNewArrayRef, content: StringBuilder, ident: String) {
+        if (node.elements.isEmpty()) {
+            content.append("[]")
+            return
+        }
+
+        content.append("[\n")
+        val subIdent = ident + oneIdent
+        for (e in node.elements) {
+            content.append(subIdent)
+            emitNode(e, content, subIdent)
+            content.append(",\n")
+        }
+        content.append(ident)
+        content.append("]")
     }
 
     private fun emitNumber(node: PNumber, content: StringBuilder, ident: String) {
