@@ -52,7 +52,7 @@ sub my_sub() {
     
     # apparently args is a hashref with key poupa
     # but what args{poupa} is? and what is $result?
-    my $result = Bookings::OtherModule->do_something($args->{poupa});
+    my $result = Bookings::External::OtherModule->do_something($args->{poupa});
     
     # result is some object, it would be nice to know what `volobuev` returns
     # but there is no way to know, consequently we cannot say what the function does
