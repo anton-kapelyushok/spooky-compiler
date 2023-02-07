@@ -231,7 +231,7 @@ class SpookyEmitter {
         content.append("use warnings;\n")
         content.append("\n")
 
-        content.append("#MODULE IMPORTS\n")
+        content.append("# MODULE IMPORTS\n")
         module.imports.forEach {
             content.append("use $it;\n")
         }
