@@ -16,11 +16,9 @@ import javax.lang.model.element.Modifier
 class SpookyCodeGenerator(
     val trees: JavacTrees,
     val cus: List<CompilationUnitTree>,
-    val taskContext: com.sun.tools.javac.util.Context,
     val task: JavacTask,
 ) {
     val elements = task.elements as JavacElements
-    val types = Types.instance(taskContext)
 
     val namer = Namer()
 
@@ -554,11 +552,10 @@ class SpookyCodeGenerator(
 fun generateCode(
     trees: JavacTrees,
     cus: List<CompilationUnitTree>,
-    taskContext: com.sun.tools.javac.util.Context,
     task: JavacTask,
 ): List<PModule> {
 
-    return SpookyCodeGenerator(trees, cus, taskContext, task).generate()
+    return SpookyCodeGenerator(trees, cus, task).generate()
 }
 
 

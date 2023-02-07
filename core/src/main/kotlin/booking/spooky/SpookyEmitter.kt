@@ -11,7 +11,7 @@ class SpookyEmitter {
     fun emit(module: PModule): EmittedFile {
         val content = StringBuilder()
         emitModule(module, content, "")
-        return EmittedFile(module.name.replace("::", "/"), content.toString())
+        return EmittedFile(module.name.replace("::", "/") + ".pm", content.toString())
     }
 
     fun emitNode(node: PNode, content: StringBuilder, ident: String) {

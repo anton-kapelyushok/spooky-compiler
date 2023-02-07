@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MainKt" type="JetRunConfigurationType" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="booking.spooky.MainKt" />
+    <module name="spooky-compiler.core.main" />
+    <option name="PROGRAM_PARAMETERS" value="-cp booking-lib/build/classes/java/main/ -java_out java_out -perl_out perl_out -input my-lib/src/main/java" />
+    <shortenClasspath name="NONE" />
+    <option name="VM_PARAMETERS" value="-ea --add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
