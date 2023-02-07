@@ -1,6 +1,17 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
+    }
+}
+
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id 'org.jetbrains.kotlin.jvm' version '1.7.21'
+
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 repositories {
@@ -18,3 +29,11 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions.jvmTarget = '1.8'
 }
+
+shadowJar {
+    baseName = 'core'
+    classifier = ''
+    version = ''
+}
+
+tasks.build.dependsOn shadowJar

@@ -27,7 +27,7 @@ fun main(args: Array<String>) {
     val options = HashMap<String, String>()
 
     if (args.isEmpty()) {
-        println("Usage example: spooky -cp <path1>:<path2> -java_out <java_out> -perl_out <perl_out> -input <java_in>")
+        println("Usage example: ./spooky.sh -cp <path1>:<path2> -java_out <java_out> -perl_out <perl_out> -input <java_in>")
         return
     }
 
@@ -60,7 +60,7 @@ fun main(args: Array<String>) {
         null, fileManager, { diagnostic ->
             println("diagnostic")
             if ((diagnostic.kind == Diagnostic.Kind.ERROR)) {
-                error("diagnostic")
+                error(diagnostic)
             } else {
                 println(diagnostic)
             }
