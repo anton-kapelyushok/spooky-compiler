@@ -32,14 +32,14 @@ class SpookyEmitter {
             is PNewHashRef -> emitNewHashRef(node, content, ident)
             is PNumber -> emitNumber(node, content, ident)
             is PNewArrayRef -> emitNewArrayRef(node, content, ident)
-            is PArrayMap -> emitArrayMap(node, content, ident)
+            is PArrayRefMap -> emitArrayMap(node, content, ident)
 //            else -> println("Unknown node type ${node::class.simpleName}")
             else -> error("Unknown node type ${node::class.simpleName}")
         }
     }
 
 
-    private fun emitArrayMap(node: PArrayMap, content: StringBuilder, ident: String) {
+    private fun emitArrayMap(node: PArrayRefMap, content: StringBuilder, ident: String) {
         // [ map {
         content.append("[ map {\n")
 

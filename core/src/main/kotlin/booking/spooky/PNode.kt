@@ -165,7 +165,7 @@ open class PReturn(
     val expr: PExpression?
 ) : PStatement()
 
-open class PArrayMap(
+open class PArrayRefMap(
     val array: PExpression,
     val mapper: PExpression,
     val tmpName: String,

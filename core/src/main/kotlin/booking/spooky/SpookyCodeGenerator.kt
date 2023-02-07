@@ -4,12 +4,10 @@ package booking.spooky
 
 import com.sun.source.tree.*
 import com.sun.source.util.JavacTask
-import com.sun.source.util.TreePathScanner
 import com.sun.tools.javac.api.JavacTrees
 import com.sun.tools.javac.code.Symbol
 import com.sun.tools.javac.code.Symbol.ClassSymbol
 import com.sun.tools.javac.code.Type
-import com.sun.tools.javac.model.JavacElements
 import javax.lang.model.element.Modifier
 
 class SpookyCodeGenerator(
@@ -434,7 +432,7 @@ class SpookyCodeGenerator(
                 if ("perl.ArrayRef" == methodSelect.expression.type!!.tsym.toString()) {
                     if (methodSelect.identifier.toString() == "map") {
                         val tmpName = symTable.generateName("sub")
-                        return PArrayMap(
+                        return PArrayRefMap(
                             compileExpression(methodSelect.expression, symTable),
                             pArguments.toMutableList()[0],
                             tmpName
