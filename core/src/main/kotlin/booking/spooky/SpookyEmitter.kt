@@ -247,6 +247,9 @@ class SpookyEmitter {
         module.subDeclarations.forEach {
             emitNode(it, content, ident)
         }
+
+        content.append("\n")
+        content.append("1;\n")
     }
 }
 
