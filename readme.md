@@ -4,13 +4,13 @@ Java to Perl Compiler is designed to bring the benefits of strong typing to exis
 
 ## Key Features
 * Write in Java, run on existing Perl infrastructure
-* Compile time type checking using javac
+* Compile time type checking using `javac`
 * Interoperable with existing Perl code in both directions
 * Ability to migrate one file at a time, allowing for a phased approach to migration without the need to extract the entire service to Java
 
 
 ## Benefits
-* Start getting the benefits of typechecking from day one.
+* Start getting the benefits of typechecking from immediately
 * Improved code reliability through strong typing and compile-time error checking.
 * Ability to leverage the existing Perl infrastructure, reducing the need for significant refactoring.
 * Facilitated migration path from Perl to Java, enabling organizations to modernize their codebase and take advantage of the latest Java technologies.
@@ -24,6 +24,7 @@ Java to Perl Compiler is designed to bring the benefits of strong typing to exis
 ## Show me!
 
 Let's start with simple Perl module we want to convert:
+
 ```perl
 package Bookings::ToConvert::MyModule;
 
@@ -86,7 +87,8 @@ public interface ExternalModule extends PerlModule {
 Great! Now we can continue with rewriting MyModule to Java:
 
 **Rewriting MyModule to Java**
-```
+
+```java
 package Bookings.ToConvert;
 
 import Bookings.External.ExternalModule;
@@ -125,10 +127,11 @@ public class MyModule implements PerlModule {
 }
 ```
 
-** Compiling **
+**Compiling**
+
 All is left is to compile the code. We just run
 
-```
+```sh
 ./spooky.sh \
     -java_out j_out
     -perl_out p_out
