@@ -25,7 +25,7 @@ public class Book implements PerlModule {
             var travel_purpose_constant = travelPurposeModule.string_to_constant(args.travel_purpose);
 
             var price_context = priceDetailContextModule.__new(new Context.NewContextArgs(
-                    price, args.price_mode, travel_purpose_constant, args.booker_cc1
+                    price, args.price_mode(), travel_purpose_constant, args.booker_cc1()
             ));
 
             var breakdown = price_context.breakdown();

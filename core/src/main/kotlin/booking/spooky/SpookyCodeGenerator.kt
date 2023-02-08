@@ -421,11 +421,13 @@ class SpookyCodeGenerator(
             }
 
             is MemberSelectTree -> {
+                val methodName = methodSelect.sym!!.getAnnotation(perl.PerlName::class.java)?.value
+                    ?: methodSelect.identifier.toString()
                 if ("perl.PerlDto" in implementedInterfaces(methodSelect.expression.type!!.tsym as ClassSymbol)) {
                     if (pArguments.isNotEmpty()) error("PerlDto field access with parameters? $methodInvocation")
                     return PHashRefGet(
                         compileExpression(methodSelect.expression, symTable),
-                        PString(methodSelect.identifier.toString())
+                        PString(methodName)
                     )
                 }
 
@@ -439,10 +441,9 @@ class SpookyCodeGenerator(
                         )
                     }
                 }
-
                 return PMethodCall(
                     compileExpression(methodSelect.expression, symTable),
-                    methodSelect.identifier.toString(),
+                    methodName,
                     pArguments.toMutableList()
                 )
             }

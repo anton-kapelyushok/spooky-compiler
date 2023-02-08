@@ -2,8 +2,10 @@ package Bookings.PriceDetail;
 
 import perl.PerlDto;
 import perl.PerlModule;
+import perl.PerlName;
 
 public interface Context extends PerlModule {
+    @PerlName("new")
     Obj __new(NewContextArgs args);
 
     record NewContextArgs(
