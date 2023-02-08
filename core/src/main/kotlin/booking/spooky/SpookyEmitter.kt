@@ -41,7 +41,7 @@ class SpookyEmitter {
 
     private fun emitArrayMap(node: PArrayRefMap, content: StringBuilder, ident: String) {
         // ( \map {
-        content.append("( \\map {\n")
+        content.append("[ map {\n")
 
         // my $tmp = ... ;
         val i1 = ident + oneIdent
@@ -58,7 +58,7 @@ class SpookyEmitter {
         content.append(ident)
         content.append("} ")
         emitNode(node.array, content, ident)
-        content.append("->@* )")
+        content.append("->@* ]")
     }
 
     private fun emitNewArrayRef(node: PNewArrayRef, content: StringBuilder, ident: String) {
