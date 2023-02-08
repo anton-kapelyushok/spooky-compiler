@@ -1,14 +1,147 @@
 # Java to Perl compiler
 
-This project creates a tool that transpiles Java code into Perl code. 
+Java to Perl Compiler is designed to bring the benefits of strong typing to existing Perl codebase and to enable a gradual migration from Perl to Java.
 
-The generated code can be executed in existing Perl environment.
+## Key Features
+* Write in Java, run on existing Perl infrastructure
+* Compile time type checking using javac
+* Interoperable with existing Perl code in both directions
+* Ability to migrate one file at a time, allowing for a phased approach to migration without the need to extract the entire service to Java
 
-The project's objectives are:
 
-* Bring in a typesystem, boosting development speed and lowering bug occurrence
-* Enable a gradual transition from Java to Perl, by converting code file by file.
+## Benefits
+* Start getting the benefits of typechecking from day one.
+* Improved code reliability through strong typing and compile-time error checking.
+* Ability to leverage the existing Perl infrastructure, reducing the need for significant refactoring.
+* Facilitated migration path from Perl to Java, enabling organizations to modernize their codebase and take advantage of the latest Java technologies.
 
+## How it works
+* The Java to Perl Compiler uses `javac` for type checking and semantic analysis
+* Interoperability between Java and Perl is achieved through bindings - descriptions of Perl modules in Java
+* Output of compiler is Perl modules in .pm format to use in Perl codebase and Java .class files for downstream module compilations
+* Input is .java module sources and bindings to compile and precompiled .class files from previous steps
+
+## Show me!
+
+Let's start with simple Perl module we want to convert:
+```perl
+package Bookings::ToConvert::MyModule;
+
+use strict;
+use warnings;
+use Bookings::External::ExternalModule;
+
+sub do_something {
+    my ($class, $args) = @_;
+
+    my $loupas = Bookings::External::ExternalModule->convert_to_loupas($args->{poupas});
+    return [ map {$_->volobuev(4)} @$loupas ];
+}
+
+1;
+```
+
+We see that this module depends on `Bookings::External::ExternalModule`, declares one sub `do_something`.
+
+Sub `do_something` accepts some `$args` which we do not know anything about util we inspect function body.
+
+Apparently it has a key `poupas`, and this value can be probably passed to `convert_to_loupas` sub of `ExternalModule`.
+
+Then we try to map result of `convert_to_loupas` and call `volobuev` on each item of the list.
+We know it is a list because we try to map it, unless we made a mistake writing the sub.
+
+Finally, we return a list of items returned by `volobuev` method. We cannot say anything specific about it.
+
+**Declaring dependencies:**
+
+Start rewriting the perl code by declaring its dependencies via bindings.
+Normally there would be existing bindings for us to use, but here we are starting from scratch.
+
+Here it is:
+
+```java
+package Bookings.External;
+
+import perl.ArrayRef;
+import perl.PerlModule;
+
+// module name is derived from package name + class name
+// Bookings::External::ExternalModule is derived
+public interface ExternalModule extends PerlModule {
+    
+    // module declares sub `do_something`
+    // it accepts array of objects which implement interface `Poupa` in Java
+    // it will return array of objects which you can call `volobuev` on
+    ArrayRef<Loupa> convert_to_loupas(ArrayRef<Poupa> poupa);
+
+    interface Poupa {
+    }
+
+    interface Loupa {
+        String volobuev(Number arg);
+    }
+}
+```
+
+Great! Now we can continue with rewriting MyModule to Java:
+
+**Rewriting MyModule to Java**
+```
+package Bookings.ToConvert;
+
+import Bookings.External.ExternalModule;
+import perl.ArrayRef;
+import perl.PerlModule;
+
+// Bookings::ToConvert::MyModule is inferred
+public class MyModule implements PerlModule {
+    private final ExternalModule externalModule;
+
+    // declared modules must have only one constructor
+    // parameters of the constructor must be modules we want to use
+    // compiler sees that we require Bookings::External::ExternalModule
+    // and will generate `use Bookings::External::OtherModule;` statement in an output
+    // 
+    // lombok.AllArgsConstructor can also be used!
+    public MyModule(ExternalModule externalModule) {
+        this.externalModule = externalModule;
+    }
+    
+    // `my_sub` in perl was accepting some $args, which seemingly had `poupas` key
+    // let's be strict here and define what is $args and what type `poupas` value is
+    public record MySubArgs(
+            ArrayRef<ExternalModule.Poupa> poupas
+    ) implements PerlDto {
+    }
+    
+    // now we know that args is a HashRef, and poupa has type 'Poupa'
+    // great! let's continue with defining `my_sub`
+    public ArrayRef<String> do_something(MySubArgs args) {
+        // autocomplete and typechecking works here!
+        // and result is inferred as ArrayRef<Loupa>
+        var loupas = externalModule.convert_to_loupas(args.poupas());
+        return loupas.map(it -> it.volobuev(4));
+    }
+}
+```
+
+** Compiling **
+All is left is to compile the code. We just run
+
+```
+./spooky.sh \
+    -java_out j_out
+    -perl_out p_out
+    -input src
+```
+
+This will output several files:
+- `p_out/Bookings/ToConvert/MyModule.pm` - can be called from Perl
+- `j_out/Bookings/External/ExternalModule.class` - intermediate representations to use in other modules
+- `j_out/Bookings/External/ExternalModule$Loupa.class`
+- `j_out/Bookings/External/ExternalModule$Poupa.class`
+- `j_out/Bookings/ToConvert/MyModule.class`
+- `j_out/Bookings/ToConvert/MySubArgs.class`
 
 ## Usage:
 
@@ -35,112 +168,3 @@ Example:
 ```
 ./gradlew clean build
 ```
-
-## Converting Perl to Java
-
-Let's start with simple Perl module we want to convert:
-```perl
-package Bookings::ToMigrate::MyModule;
-
-use Bookings::External::OtherModule;
-
-# declare my_sub for other people to use
-# but the question is, what the function actually does?
-sub my_sub() {
-    # what is args? 
-    my ($args) = @_;
-    
-    # apparently args is a hashref with key poupa
-    # but what args{poupa} is? and what is $result?
-    my $result = Bookings::External::OtherModule->do_something($args->{poupa});
-    
-    # result is some object, it would be nice to know what `volobuev` returns
-    # but there is no way to know, consequently we cannot say what the function does
-    return $result->volobuev(14);
-}
-```
-
-Start with defining bindings for existing perl dependencies:
-```java
-package Bookings.External;
-
-import perl.PerlModule;
-
-// module name is derived from package name + class name
-// Bookings::External::OtherModule is derived
-interface OtherModule implements PerlModule {
-    
-    // module declares sub `do_something`
-    // sub will be called as Bookings::External::OtherModule->do_something(poupa)
-    //
-    // it accepts any object which implements interface `Poupa` in Java
-    // it will return an object which you can call `volobuev` on
-    Loupa do_something(Poupa poupa);
-    
-    interface Poupa {
-        // you don't actually need to define here anything if you don't use it
-        // you could probably go with Object here, but having interface adds additional type safety
-    }
-    
-    interface Loupa {
-        String volobuev(Number arg);
-    }
-}
-```
-
-Now we can start rewriting MyModule to Java:
-```java
-package Bookings.ToMigrate;
-
-import perl.PerlModule;
-import perl.PerlDto;
-import Bookings.External.OtherModule;
-
-// Bookings::ToMigrate::MyModule is inferred
-class MyModule implements PerlModule {
-    private final OtherModule otherModule;
-    
-    // declared modules have only one constructor
-    // parameters of the constructor must be modules we want to use
-    // compiler sees that we require Bookings::External::OtherModule
-    // and will generate `use Bookings::External::OtherModule;` statement
-    // 
-    // lombok.AllArgsConstructor can also be used!
-    public MyModule(OtherModule otherModule) {
-        this.otherModule = otherModule;
-    }
-    
-    // `my_sub` in perl was accepting some $args, which seemingly had `poupa` key
-    // let's be strict here and define what $args was and what type `poupa` is
-    public record MySubArgs(
-            Poupa poupa
-    ) implements PerlDto {
-    }
-    
-    // now we know that args is a HashRef, and poupa has type 'Poupa'
-    // great! let's continue with defining `my_sub`
-    public String my_sub(MySubArgs args) {
-        // look, you can see sub returns String, and you don't have to spend 30 minutes jumping through files
-        var result = otherModule.do_something(args.poupa());
-        // result is inferred by Compiler as Loupa here!!
-        // autocomplete works, you just type '.' and ...
-        return result.volobuev(14);
-    } 
-    
-    // we are done!
-}
-```
-
-All is left is to compile the code. We just run
-
-```
-./spooky.sh \
-    -java_out j_out
-    -perl_out p_out
-    -input src
-```
-
-As a result we get generated perl source at `p_out/Bookings/ToMigrate/MyModule.pm`, which can be used as any other perl module
-
-
-Additionally, you get a bunch of `.class` files in `j_out` repository, which can be reused for compiling other modules! 

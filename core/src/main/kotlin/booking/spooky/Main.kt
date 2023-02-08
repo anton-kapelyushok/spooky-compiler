@@ -43,7 +43,7 @@ fun main(args: Array<String>) {
     }
 
     options["cp"] =
-        (options["cp"]!!.split(":") + listOf("lombok.jar", "perl-lib/build/classes/java/main/")).joinToString(":")
+        ((options["cp"] ?: "").split(":") + listOf("lombok.jar", "perl-lib/build/classes/java/main/")).joinToString(":")
 
     options["java_out"] = options["java_out"] ?: "."
     options["perl_out"] = options["perl_out"] ?: "."
