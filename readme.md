@@ -25,7 +25,7 @@ Java to Perl Compiler is designed to bring the benefits of strong typing to exis
 
 Let's start with simple Perl module we want to convert:
 
-```perl
+```perl5
 package Bookings::ToConvert::MyModule;
 
 use strict;
@@ -139,7 +139,7 @@ All is left is to compile the code. We just run
 ```
 
 This will output several files:
-- `p_out/Bookings/ToConvert/MyModule.pm` - can be called from Perl
+- `p_out/Bookings/ToConvert/MyModule.pm` - can be called from Perl (check output on the bottom of the readme)
 - `j_out/Bookings/External/ExternalModule.class` - intermediate representations to use in other modules
 - `j_out/Bookings/External/ExternalModule$Loupa.class`
 - `j_out/Bookings/External/ExternalModule$Poupa.class`
@@ -170,4 +170,46 @@ Example:
 
 ```
 ./gradlew clean build
+```
+
+
+
+## p_out/Bookings/ToConvert/MyModule.pm output
+
+```perl5
+package Bookings::ToConvert::MyModule;
+ 
+use strict;
+use warnings;
+ 
+# MODULE IMPORTS
+use Bookings::External::ExternalModule;
+ 
+# MODULE INIT
+my $self_25 = __PACKAGE__;
+my $externalModule_26 = undef;
+my $Bookings__External__ExternalModule_27 = "Bookings::External::ExternalModule";
+undef;
+$externalModule_26 = $Bookings__External__ExternalModule_27;
+ 
+# MODULE DECLARATIONS
+sub do_something {
+    my ($self_28, $args_29) = @_;
+ 
+    my $loupas_30 = $externalModule_26->convert_to_loupas(
+        $args_29->{("poupas")},
+    );
+    my $sub_32 = sub {
+        my ($it_31) = @_;
+ 
+        return $it_31->volobuev(
+            4,
+        );
+    };
+    return [ map {
+        $sub_32->($_);
+    } $loupas_30->@* ];
+}
+ 
+1;
 ```
