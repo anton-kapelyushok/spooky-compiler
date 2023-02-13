@@ -33,9 +33,89 @@ class SpookyEmitter {
             is PNumber -> emitNumber(node, content, ident)
             is PNewArrayRef -> emitNewArrayRef(node, content, ident)
             is PArrayRefMap -> emitArrayMap(node, content, ident)
+            is PHashRefSet -> emitHashRefSet(node, content, ident)
+            is PStringConcat -> emitStringConcat(node, content, ident)
+            is PIf -> emitIf(node, content, ident)
+            is PParenExpression -> emitParenExpression(node, content, ident)
+            is PBlock -> emitBlock(node, content, ident)
+            is PDie -> emitDie(node, content, ident)
+            is PArrayRefGet -> emitArrayRefGet(node, content, ident)
+            is PHashRefHas -> emitHashRefHas(node, content, ident)
 //            else -> println("Unknown node type ${node::class.simpleName}")
             else -> error("Unknown node type ${node::class.simpleName}")
         }
+    }
+
+    private fun emitHashRefHas(node: PHashRefHas, content: StringBuilder, ident: String) {
+        content.append("defined(")
+        emitNode(node.hashRef, content, ident)
+        content.append("->{")
+        emitNode(node.key, content, ident)
+        content.append("}")
+        content.append(")")
+    }
+
+    private fun emitArrayRefGet(node: PArrayRefGet, content: StringBuilder, ident: String) {
+        emitNode(node.arrayRef, content, ident)
+        content.append("->[")
+        emitNode(node.idx, content, ident)
+        content.append("]")
+    }
+
+    private fun emitDie(node: PDie, content: StringBuilder, ident: String) {
+        content.append(ident)
+        content.append("die ")
+        emitNode(node.message, content, ident)
+        content.append(";\n")
+    }
+
+    private fun emitBlock(node: PBlock, content: StringBuilder, ident: String) {
+        content.append(ident)
+        content.append("{\n")
+        node.statements.forEach {
+            emitNode(it, content, ident + oneIdent)
+        }
+        content.append("}\n")
+    }
+
+    private fun emitParenExpression(node: PParenExpression, content: StringBuilder, ident: String) {
+        content.append("(")
+        emitNode(node.expr, content, ident)
+        content.append(")")
+    }
+
+    private fun emitIf(node: PIf, content: StringBuilder, ident: String) {
+        content.append(ident)
+        content.append("if (")
+        emitNode(node.condition, content, ident)
+        content.append(")")
+        if (node.thenStatement is PBlock) {
+            content.append(" {\n")
+            node.thenStatement.statements.forEach {
+                emitNode(it, content, ident + oneIdent)
+            }
+            content.append(ident)
+            content.append("}\n")
+        } else {
+            content.append("\n")
+            emitNode(node.thenStatement, content, ident + oneIdent)
+        }
+
+        if (node.elseStatement != null) TODO()
+    }
+
+    private fun emitStringConcat(node: PStringConcat, content: StringBuilder, ident: String) {
+        emitNode(node.left, content, ident)
+        content.append(".")
+        emitNode(node.right, content, ident)
+    }
+
+    private fun emitHashRefSet(node: PHashRefSet, content: StringBuilder, ident: String) {
+        emitNode(node.hashRef, content, ident)
+        content.append("->{(")
+        emitNode(node.key, content, ident)
+        content.append(")} = ")
+        emitNode(node.value, content, ident)
     }
 
 

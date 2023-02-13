@@ -12,4 +12,10 @@ public final class ArrayRef<T> {
     public T get(Integer nz) {
         return null;
     }
+
+    @SafeVarargs
+    @PerlIntrinsic
+    public ArrayRef(T... data) {
+
+    }
 }

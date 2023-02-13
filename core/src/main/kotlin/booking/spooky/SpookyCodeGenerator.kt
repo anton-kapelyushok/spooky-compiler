@@ -267,7 +267,7 @@ class SpookyCodeGenerator(
 
     fun compileStatement(expr: StatementTree, symTable: SymTable): PStatement {
 
-        return when (expr) {
+        return when_lbl@ when (expr) {
             is ExpressionStatementTree -> {
                 PExpressionStatement(compileExpression(expr.expression, symTable))
             }
@@ -281,6 +281,34 @@ class SpookyCodeGenerator(
             is ReturnTree -> {
                 if (expr.expression == null) PReturn(null)
                 else PReturn(compileExpression(expr.expression, symTable))
+            }
+
+            is IfTree -> {
+                PIf(
+                    compileExpression((expr.condition as ParenthesizedTree).expression, symTable),
+                    compileStatement(expr.thenStatement, symTable),
+                    expr.elseStatement?.let { compileStatement(it, symTable) }
+                )
+            }
+
+            is BlockTree -> {
+                val nSymTable = SymTable(symTable)
+                PBlock(
+                    expr.statements.map { compileStatement(it, nSymTable) }
+                )
+            }
+
+            is ThrowTree -> {
+                if (expr.expression.type.toString() == "perl.DieException" && expr.expression is NewClassTree) {
+                    return PDie(
+                        compileExpression(
+                            (expr.expression as NewClassTree).arguments[0],
+                            symTable
+                        )
+                    )
+                }
+
+                error("only throw new DieException(msg) is supported")
             }
 
             else -> {
@@ -380,7 +408,12 @@ class SpookyCodeGenerator(
                     error("Cannot instantiate $expr")
                 }
                 if ("perl.ArrayRef" == sym.fullname.toString()) {
-                    return PNewArrayRef()
+                    return PNewArrayRef(
+                        expr.arguments.map { compileExpression(it, symTable) }.toMutableList()
+                    )
+                }
+                if ("perl.HashRef" == sym.fullname.toString()) {
+                    return PNewHashRef()
                 }
                 if ("perl.PerlDto" in implementedInterfaces(sym)) {
                     val recordComponents = sym.recordComponents
@@ -395,6 +428,18 @@ class SpookyCodeGenerator(
                     return PNewHashRef(args)
                 }
                 error("Cannot instantiate $expr")
+            }
+
+            is BinaryTree -> {
+                if (expr.kind == Tree.Kind.PLUS) {
+                    if (expr.leftOperand.type.toString() == "java.lang.String") {
+                        return PStringConcat(
+                            compileExpression(expr.leftOperand, symTable),
+                            compileExpression(expr.rightOperand, symTable),
+                        )
+                    }
+                }
+                error("Unknown binary tree $expr")
             }
 
             else -> {
@@ -440,7 +485,43 @@ class SpookyCodeGenerator(
                             tmpName
                         )
                     }
+
+                    if (methodSelect.identifier.toString() == "get") {
+                        return PArrayRefGet(
+                            compileExpression(methodSelect.expression, symTable),
+                            pArguments[0],
+                        )
+                    }
+
+                    error("Unsupported ArrayRef method ${methodSelect.identifier.toString()}")
                 }
+
+                if ("perl.HashRef" == methodSelect.expression.type!!.tsym.toString()) {
+                    if (methodSelect.identifier.toString() == "put") {
+                        return PHashRefSet(
+                            compileExpression(methodSelect.expression, symTable),
+                            pArguments[0],
+                            pArguments[1],
+                        )
+                    }
+
+                    if (methodSelect.identifier.toString() == "get") {
+                        return PHashRefGet(
+                            compileExpression(methodSelect.expression, symTable),
+                            pArguments[0],
+                        )
+                    }
+
+                    if (methodSelect.identifier.toString() == "has") {
+                        return PHashRefHas(
+                            compileExpression(methodSelect.expression, symTable),
+                            pArguments[0],
+                        )
+                    }
+
+                    error("Unsupported HashRef method ${methodSelect.identifier.toString()}")
+                }
+
                 return PMethodCall(
                     compileExpression(methodSelect.expression, symTable),
                     methodName,

@@ -170,3 +170,44 @@ open class PArrayRefMap(
     val mapper: PExpression,
     val tmpName: String,
 ) : PExpression()
+
+
+open class PHashRefSet(
+    val hashRef: PExpression,
+    val key: PExpression,
+    val value: PExpression
+) : PExpression() {
+    override fun toString(): String {
+        return super.toString()
+    }
+}
+
+open class PStringConcat(
+    val left: PExpression,
+    val right: PExpression,
+) : PExpression()
+
+
+open class PIf(
+    val condition: PExpression,
+    val thenStatement: PStatement,
+    val elseStatement: PStatement? = null,
+) : PStatement()
+
+open class PBlock(
+    val statements: List<PStatement>
+) : PStatement()
+
+open class PDie(
+    val message: PExpression,
+) : PStatement()
+
+open class PArrayRefGet(
+    val arrayRef: PExpression,
+    val idx: PExpression,
+) : PExpression()
+
+open class PHashRefHas(
+    val hashRef: PExpression,
+    val key: PExpression,
+): PExpression()
