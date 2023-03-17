@@ -75,14 +75,24 @@ open class PSubCall(
 ) : PExpression()
 
 open class PMethodCall(
-    val varName: PExpression,
+    val methodSelect: PExpression,
 
     val methodName: String,
 
     val arguments: MutableList<PExpression> = mutableListOf(),
 ) : PExpression() {
     override fun toString(): String {
-        return "$varName->$methodName(${arguments.joinToString(",")})"
+        return "$methodSelect->$methodName(${arguments.joinToString(",")})"
+    }
+}
+
+open class PStaticMethodCall(
+    val moduleName: String,
+    val methodName: String,
+    val arguments: List<PExpression>,
+): PExpression() {
+    override fun toString(): String {
+        return "$moduleName::$methodName(${arguments.joinToString(",")})"
     }
 }
 
@@ -145,7 +155,7 @@ open class PExpressionStatement(
 }
 
 open class PAssign(
-    val lValue: PIdent,
+    val lValue: PExpression,
     val rValue: PExpression
 ) : PExpression() {
     override fun toString(): String {
@@ -211,3 +221,15 @@ open class PHashRefHas(
     val hashRef: PExpression,
     val key: PExpression,
 ): PExpression()
+
+
+open class PUnrealExpression(val raw: String): PExpression(){
+    override fun toString(): String {
+        return "(e> $raw <e)"
+    }
+}
+open class PUnrealStatement(val raw: String): PStatement() {
+    override fun toString(): String {
+        return "(s> $raw <s)"
+    }
+}

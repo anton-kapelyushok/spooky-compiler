@@ -28,7 +28,6 @@ class SpookyCodeGenerator(
 
         val symbols = mutableMapOf<Any, PSymbol>()
 
-
         fun addSelf(): PSymbol {
             symbols[SelfKey] = PSymbol(namer.nameFor("self"), "self")
             return symbols[SelfKey]!!

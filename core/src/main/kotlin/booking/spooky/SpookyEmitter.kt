@@ -41,9 +41,19 @@ class SpookyEmitter {
             is PDie -> emitDie(node, content, ident)
             is PArrayRefGet -> emitArrayRefGet(node, content, ident)
             is PHashRefHas -> emitHashRefHas(node, content, ident)
+            is PUnrealExpression -> emitUnrealExpression(node, content, ident)
+            is PUnrealStatement -> emitUnrealStatement(node, content, ident)
 //            else -> println("Unknown node type ${node::class.simpleName}")
             else -> error("Unknown node type ${node::class.simpleName}")
         }
+    }
+
+    private fun emitUnrealStatement(node: PUnrealStatement, content: StringBuilder, ident: String) {
+        content.append("$ident>s> ${node.raw} <s<\n")
+    }
+
+    private fun emitUnrealExpression(node: PUnrealExpression, content: StringBuilder, ident: String) {
+        content.append(">e> ${node.raw} <e<")
     }
 
     private fun emitHashRefHas(node: PHashRefHas, content: StringBuilder, ident: String) {
@@ -211,7 +221,7 @@ class SpookyEmitter {
     }
 
     private fun emitMethodCall(node: PMethodCall, content: StringBuilder, ident: String) {
-        emitNode(node.varName, content, ident)
+        emitNode(node.methodSelect, content, ident)
 
         if (node.arguments.isEmpty()) {
             content.append("->${node.methodName}()")
