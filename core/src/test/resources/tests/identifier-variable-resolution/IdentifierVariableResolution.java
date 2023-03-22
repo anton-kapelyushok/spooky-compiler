@@ -29,7 +29,19 @@ class IdentifierVariableResolution {
                     public void test(String argument) {
                         String variable = null;
 
-                        sink(this, anon, argument, capturedArgument, capturedVariable, inner, parent, outer, outerParent, importedString, anonStatic);
+                        sink(
+                            this,  // self
+                            anon,  // self -> anonymous -> anon
+                            argument, // argument
+                            capturedArgument, // capturedArgument
+                            capturedVariable, // capturedVariable
+                            inner, // self -> __enclosing -> Inner -> inner
+                            parent, // self -> __enclosing -> Parent -> parent
+                            outer, // self -> __enclosing -> __enclosing -> Outer -> outer
+                            outerParent, // self -> __enclosing -> __enclosing -> OuterParent -> outerParent
+                            importedString,
+                            anonStatic
+                        );
                     }
                 };
             }

@@ -46,7 +46,7 @@ class ClassTranslator {
 
 
         val preconstructorContext = classContext.defaultConstructorContext()
-        val thisKey = ThisKey(classTree.type!!.toString())
+        val thisKey = ThisKey
 
         dynamicMembers.forEach { member ->
             when (member) {
@@ -163,10 +163,6 @@ fun translateStatement(context: Context, statementTree: StatementTree) {
 
 }
 
-interface SymKey
-data class ThisKey(val type: String) : SymKey
-data class JavacSymbolKey(val sym: Symbol) : SymKey
-
 interface VarRef {
     val name: String
 }
@@ -234,7 +230,7 @@ class MethodContext2 : Context {
 
     private fun resolveFieldHolder(holder: SymKey): PExpression {
         if (holder is ThisKey) {
-            return PHashRefGet(PIdent("self"), PString(holder.type))
+            return PIdent("self")
         }
         error("")
     }

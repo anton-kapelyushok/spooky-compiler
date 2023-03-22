@@ -2,27 +2,21 @@
 
 package booking.spooky
 
-import booking.spooky.verymodern.ClassTranslator
 import booking.spooky.verymodern.JavacSymbolKey
 import booking.spooky.verymodern.MethodContext
 import com.sun.source.tree.*
 import com.sun.source.util.TreePathScanner
 import com.sun.tools.javac.api.BasicJavacTask
+import com.sun.tools.javac.code.Symbol.ClassSymbol
 import com.sun.tools.javac.code.Types
 import org.junit.jupiter.api.Test
 import java.lang.management.ManagementFactory
 
-class SimpleClassTest {
+class MethodContextTest {
 
     @Test
-    fun test() {
-        println(ManagementFactory.getRuntimeMXBean().getInputArguments())
-        System.out.println(System.getProperty("jdk.module.upgrade.path"));
-
-        val cu = compileJava("simple-class").cus.single()
-        val ct = ClassTranslator()
-        val module = cu.typeDecls[0].let { ct.translateClass(null, it as ClassTree) }
-        println(emitCode(listOf(module)))
+    fun `print runtime arguments`() {
+        println(ManagementFactory.getRuntimeMXBean().inputArguments)
     }
 
     @Test
@@ -46,7 +40,7 @@ class SimpleClassTest {
                         isStatic = false,
                         key = JavacSymbolKey(node.sym!!),
                         name = "test",
-                        owner = node.sym!!.owner,
+                        methodOwner = node.sym!!.owner as ClassSymbol,
                         types = types,
                     )
 
@@ -81,7 +75,7 @@ class SimpleClassTest {
                         isStatic = false,
                         key = JavacSymbolKey(node.sym!!),
                         name = "test",
-                        owner = node.sym!!.owner,
+                        methodOwner = node.sym!!.owner as ClassSymbol,
                         types = types,
                     )
 
@@ -118,7 +112,7 @@ class SimpleClassTest {
                         isStatic = false,
                         key = JavacSymbolKey(node.sym!!),
                         name = "test",
-                        owner = node.sym!!.owner,
+                        methodOwner = node.sym!!.owner as ClassSymbol,
                         types = types,
                     )
                 }
@@ -130,6 +124,45 @@ class SimpleClassTest {
                 if ((node.methodSelect as? IdentifierTree)?.name.toString() == "sink") {
                     node.arguments.forEach {
                         println(mc!!.variableIdentifier(it as IdentifierTree))
+                    }
+                }
+            }
+        }
+
+        scanner.scan(cu, Unit)
+    }
+
+    @Test
+    fun `member-select-variable-resolution`() {
+        val compilationResult = compileJava("member-select-variable-resolution")
+        val cu = compilationResult.cus.single()
+        val task = compilationResult.task
+        val jcontext = (task as BasicJavacTask).context
+        val types = Types.instance(jcontext)
+
+        var mc: MethodContext? = null
+
+        val scanner = object : TreePathScanner<Unit, Unit>() {
+            override fun visitMethod(node: MethodTree, p: Unit) {
+                if (node.sym!!.name.toString() == "test") {
+                    println(node.sym!!.owner.type.toString())
+                    mc = MethodContext(
+                        isStatic = false,
+                        key = JavacSymbolKey(node.sym!!),
+                        name = "test",
+                        methodOwner = node.sym!!.owner as ClassSymbol,
+                        types = types,
+                    )
+                }
+                super.visitMethod(node, p)
+            }
+
+
+            override fun visitMethodInvocation(node: MethodInvocationTree, p: Unit) {
+                if ((node.methodSelect as? IdentifierTree)?.name.toString() == "sink") {
+                    node.arguments.forEach {
+//                        println(mc!!.variableIdentifier(it as IdentifierTree))
+                        println(mc!!.memberSelect(it as MemberSelectTree))
                     }
                 }
             }

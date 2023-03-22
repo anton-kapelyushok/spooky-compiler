@@ -66,7 +66,9 @@ open class PSubDecl(
     }
 }
 
-open class PExpression : PNode
+open class PExpression(
+    /* val type: Type */
+) : PNode
 
 open class PSubCall(
     val subName: String,
@@ -102,7 +104,7 @@ open class PHashRefGet(
     val key: PExpression,
 ) : PExpression() {
     override fun toString(): String {
-        return "($hashRef)->{($key)}"
+        return "$hashRef->{$key}"
     }
 }
 
