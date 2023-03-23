@@ -49,23 +49,19 @@ class MethodContext(
      */
     fun memberSelect(memberSelectTree: MemberSelectTree): PExpression {
         val selectedSym = memberSelectTree.sym
-        val owner = selectedSym.owner.toString()
 
         if (selectedSym.isStatic) {
-            // resolve(ModuleKey, IdentifierKey)
-            return PUnrealExpression("\$$owner::${memberSelectTree.identifier}")
+            return resolveStaticVariable(resolveVariable(ModuleKey(selectedSym.owner.type)), JavacSymbolKey(selectedSym))
         }
 
         if (memberSelectTree.identifier.toString() == "this") {
             val ownerType = memberSelectTree.expression.type!!
             if (memberSelectTree.expression.type!! == methodOwner.type) {
-//                return PUnrealExpression("\$self")
                 return resolveVariable(ThisKey)
             }
             // left part of expression will always be type, no inheritance
             // if (type == methodOwner) -> $self
             // else $self -> {enclosing} -> {type}
-//            return PUnrealExpression("\$self->{__enclosing}->{${ownerType}}")
             return resolveVariable(EnclosingThisKey(ownerType))
         }
 
@@ -73,14 +69,11 @@ class MethodContext(
             // always enclosing class?
             val ownerType = memberSelectTree.expression.type!!
             return resolveVariable(EnclosingThisKey(ownerType))
-//            return PUnrealExpression("\$self->{__enclosing}->{${ownerType}}")
         }
 
         val expressionTree = memberSelectTree.expression
         val expr = resolveExpression(expressionTree)
 
-        // resolve(expr, selectedSym)
-//        return PUnrealExpression("$expr->{$owner}->{${memberSelectTree.identifier}")
         return resolveField(expr, JavacSymbolKey(selectedSym))
     }
 
@@ -90,14 +83,10 @@ class MethodContext(
     fun variableIdentifier(identifierTree: IdentifierTree): PExpression {
         val identifierSym = identifierTree.sym
         if (identifierSym.isStatic) {
-            val owner = identifierSym.owner.toString()
-
-            // resolve(ModuleKey, IdentifierKey)
-            return PUnrealExpression("\$$owner::${identifierTree.name}")
+            return resolveStaticVariable(resolveVariable(ModuleKey(identifierSym.owner.type)), JavacSymbolKey(identifierSym))
         }
 
         if (identifierTree.name.toString() == "this") {
-            // resolve(This)
             return resolveVariable(ThisKey)
         }
 
@@ -108,21 +97,17 @@ class MethodContext(
         val identifierOwner = identifierSym.owner
         if (identifierOwner is Symbol.ClassSymbol) {
             if (types.isAssignable(methodOwner.type, identifierOwner.type)) {
-                // resolveField(This, Type, Sym)
                 return resolveField(resolveVariable(ThisKey), JavacSymbolKey(identifierSym))
-//                return PUnrealExpression("\$self->{${identifierOwner.type}}->{${identifierTree.name}}")
             }
 
             // must be enclosing class at this point
             val enclosingClasses = generateSequence(this.methodOwner.type.enclosingType) { it.enclosingType }
             for (enclosingClass in enclosingClasses) {
                 if (types.isAssignable(enclosingClass, identifierOwner.type)) {
-                    // resolveField(EnclosingThis(enclosingClass), Type, Sym)
                     return resolveField(
                         resolveVariable(EnclosingThisKey(enclosingClass)),
                         JavacSymbolKey(identifierSym)
                     )
-//                    return PUnrealExpression("\$self->{__enclosing}->{${enclosingClass}}->${identifierOwner.type}->{${identifierTree.name}}")
                 }
             }
 
@@ -133,9 +118,7 @@ class MethodContext(
             error("What?")
         }
 
-        // resolveLocal(Sym)
         return resolveVariable(JavacSymbolKey(identifierSym))
-//        return PUnrealExpression("\$local_or_captured_or_argument____${identifierTree.name}")
     }
 
     fun invokeMethod(methodInvocationTree: MethodInvocationTree): PExpression {
@@ -147,26 +130,30 @@ class MethodContext(
                 val memberSelectTree = methodSelect as MemberSelectTree
                 val memberSelectSym = memberSelectTree.sym
                 if (memberSelectSym.isStatic) {
-                    // symbol instead of string
-                    val owner = memberSelectSym.owner.toString()
-                    // invoke_static(ModuleKey, IdentifierKey)
-                    return PStaticMethodCall(
-                        resolveModuleName(owner),
-                        memberSelectTree.identifier.toString(),
-                        arguments
+                    return invokeStaticMethod(
+                        resolveVariable(ModuleKey(memberSelectSym.owner.type)),
+                        JavacSymbolKey(memberSelectSym),
+                        arguments,
                     )
                 }
 
                 val exprTree = memberSelectTree.expression
                 if (exprTree is IdentifierTree && exprTree.name.toString() == "super") {
-                    // invoke_super(resolve(This), IdentifierKey)
-                    return PUnrealExpression("\$self->SUPER::${memberSelectTree.identifier}(...)")
+                    return invokeSuperMethod(
+                        resolveVariable(ThisKey),
+                        JavacSymbolKey(memberSelectSym),
+                        arguments
+                    )
                 }
                 val expr = resolveExpression(exprTree)
 
                 // does PExpression have type here?
                 // invoke(PExpression, IdentifierKey)
-                return PMethodCall(expr, memberSelectTree.identifier.toString(), arguments.toMutableList())
+                return invokeMethod(
+                    expr,
+                    JavacSymbolKey(memberSelectSym),
+                    arguments
+                )
             }
 
             is IdentifierTree -> {
@@ -174,9 +161,11 @@ class MethodContext(
                 val identifierSym = identifier.sym
                 if (identifierSym !is Symbol.MethodSymbol) error("what?")
                 if (identifierSym.isStatic) {
-                    val owner = identifierSym.owner.toString()
-                    // invoke_static(ModuleKey, IdentifierKey)
-                    return PStaticMethodCall(resolveModuleName(owner), identifierSym.name.toString(), arguments)
+                    return invokeStaticMethod(
+                        resolveVariable(ModuleKey(identifierSym.owner.type)),
+                        JavacSymbolKey(identifierSym),
+                        arguments,
+                    )
                 }
                 if (identifier.name.toString() == "this") {
                     error("Not supported - only single constructor is supported (now?)")
@@ -190,12 +179,20 @@ class MethodContext(
                         for (enclosingClass in enclosingClasses) {
                             if (types.isAssignable(enclosingClass, identifierSym.owner.type.enclosingType)) {
                                 val enclosingExpr = resolveVariable(EnclosingThisKey(enclosingClass))
-                                return PUnrealExpression("\$self->SUPER::__init($enclosingExpr, ...)")
+                                return invokeSuperMethod(
+                                    resolveVariable(ThisKey),
+                                    JavacSymbolKey(identifierSym),
+                                    listOf(enclosingExpr) + arguments
+                                )
                             }
                         }
                         error("Not enclosed")
                     }
-                    return PUnrealExpression("\$self->SUPER::__init(...)")
+                    return invokeSuperMethod(
+                        resolveVariable(ThisKey),
+                        JavacSymbolKey(identifierSym),
+                        arguments
+                    )
                 }
 
                 val identifierOwner = identifierSym.owner
@@ -204,43 +201,27 @@ class MethodContext(
                 // resolution order: this, super, enclosing
                 if (this.methodOwner.toString() == identifierOwner.type.toString()) {
                     // this method call
-                    // PMethodCall(resolveActualThis(), methodName)
-                    // return invoke ( resolve(This)), SymKey )
-                    return PMethodCall(
+                    return invokeMethod(
                         resolveVariable(ThisKey),
-                        identifier.name.toString()
+                        JavacSymbolKey(identifierSym),
+                        arguments
                     )
-//                    return PUnrealExpression("\$self->${identifier.name}(...)") //     ?
                 }
 
                 if (types.isAssignable(this.methodOwner.type, identifierOwner.type)) {
                     // this method call
-                    // PMethodCall(resolveActualThis(), methodName)
-                    // return invoke ( resolve(This), IdentifierKey )
-//                    return PUnrealExpression("\$self->${identifier.name}(...)")
-                    return PMethodCall(
+                    return invokeMethod(
                         resolveVariable(ThisKey),
-                        identifier.name.toString()
+                        JavacSymbolKey(identifierSym),
+                        arguments
                     )
                 }
 
                 // must be enclosing class at this point
-
-                /*
-                val enclosingClasses = generateSequence(this.methodOwner.type.enclosingType) { it.enclosingType }
-                for (enclosingClass in enclosingClasses) {
-                    if (types.isAssignable(enclosingClass, identifierOwner.type)) {
-                        // resolve this[enclosingClass::type]
-                        // return invoke ( resolve(EnclosingThis(fqclassname)), IdentifierKey )
-                        return PUnrealExpression("\$self->{__enclosing}->{${enclosingClass}}->${identifier.name}(...)")
-                    }
-                }
-                error("Don't understand what is happening")
-                */
-                return PMethodCall(
+                return invokeMethod(
                     resolveVariable(EnclosingThisKey(identifierOwner.type)),
-                    identifier.name.toString(),
-                    arguments.toMutableList()
+                    JavacSymbolKey(identifierSym),
+                    arguments
                 )
             }
 
@@ -289,8 +270,20 @@ class MethodContext(
                 return PUnrealExpression("\$local_or_captured_or_argument____${key.sym.name}")
             }
 
+            is ModuleKey -> {
+                return PGenericLiteral(key.type.toString().replace(".", "::"))
+            }
+
             else -> error("$key not supported")
         }
+    }
+
+    fun resolveStaticVariable(expr: PExpression, key: SymKey): PExpression {
+        val sym = (key as? JavacSymbolKey)?.sym ?: error("$key is not supported")
+        return PHashRefGet(
+            PMethodCall(expr, "static"),
+            PString(sym.name.toString()),
+        )
     }
 
     fun resolveExpression(expressionTree: ExpressionTree): PExpression {
@@ -302,11 +295,33 @@ class MethodContext(
         return PUnrealExpression(expressionTree.toString())
     }
 
-    private fun resolveModuleName(fqClassName: String): String {
-        return fqClassName
+    private fun invokeMethod(expr: PExpression, key: SymKey, arguments: List<PExpression>): PExpression {
+        val sym = (key as? JavacSymbolKey)?.sym ?: error("$key is not supported")
+        return PMethodCall(
+            expr,
+            sym.name.toString(),
+            arguments.toMutableList()
+        )
     }
 
-    private fun callStaticMethod(fqClassName: String, methodName: String, arguments: List<PExpression>): PExpression {
-        return PStaticMethodCall(resolveModuleName(fqClassName), name, arguments)
+    private fun invokeStaticMethod(expr: PExpression, key: SymKey, arguments: List<PExpression>): PExpression {
+        val sym = (key as? JavacSymbolKey)?.sym ?: error("$key is not supported")
+        return PMethodCall(
+            PMethodCall(
+                expr, "static"
+            ),
+            sym.name.toString(),
+            arguments.toMutableList()
+        )
+    }
+
+    private fun invokeSuperMethod(expr: PExpression, key: SymKey, arguments: List<PExpression>): PExpression {
+        val sym = (key as? JavacSymbolKey)?.sym ?: error("$key is not supported")
+        val name = if (sym.name.toString() == "<init>") "__init" else sym.name.toString()
+        return PMethodCall(
+            expr,
+            "SUPER::$name",
+            arguments.toMutableList()
+        )
     }
 }
