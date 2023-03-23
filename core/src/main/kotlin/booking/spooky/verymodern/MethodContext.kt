@@ -178,13 +178,24 @@ class MethodContext(
                     // invoke_static(ModuleKey, IdentifierKey)
                     return PStaticMethodCall(resolveModuleName(owner), identifierSym.name.toString(), arguments)
                 }
-                if (identifierSym.name.toString() == "this") {
-                    error("Not supported - support single constructor only")
+                if (identifier.name.toString() == "this") {
+                    error("Not supported - only single constructor is supported (now?)")
                 }
-                if (identifierSym.name.toString() == "super") {
-                    // for regular classes this will just become $self->SUPER::__new()
+                if (identifier.name.toString() == "super") {
+                    // for regular classes this will just become $self->SUPER::__init()
                     // but for enclosed classes figure out whether we need to pass enclosed `this`
-                    error("Not supported yet")
+                    if (identifierSym.owner.type.enclosingType != Type.noType) {
+                        val enclosingClasses =
+                            generateSequence(this.methodOwner.type.enclosingType) { it.enclosingType }
+                        for (enclosingClass in enclosingClasses) {
+                            if (types.isAssignable(enclosingClass, identifierSym.owner.type.enclosingType)) {
+                                val enclosingExpr = resolveVariable(EnclosingThisKey(enclosingClass))
+                                return PUnrealExpression("\$self->SUPER::__init($enclosingExpr, ...)")
+                            }
+                        }
+                        error("Not enclosed")
+                    }
+                    return PUnrealExpression("\$self->SUPER::__init(...)")
                 }
 
                 val identifierOwner = identifierSym.owner

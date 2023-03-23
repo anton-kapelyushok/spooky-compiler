@@ -53,7 +53,7 @@ sub __init {
 
     $self->{__enclosing} = $enclosing_instance;
 
-    $self->SUPER::__new($self->{__enclosing}->{__enclosing}, $arg2 + $arg3);
+    $self->SUPER::__init($self->{__enclosing}->{__enclosing}, $arg2 + $arg3);
     # $self->SUPER::__new(undef, $arg2 + $arg3);
     # $self->SUPER::__new($arg2 + $arg3);
 

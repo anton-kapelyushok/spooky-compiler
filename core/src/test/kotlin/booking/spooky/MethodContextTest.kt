@@ -93,6 +93,39 @@ class MethodContextTest {
     }
 
     @Test
+    fun `super-call`() {
+        val compilationResult = compileJava("super-call")
+        val cu = compilationResult.cus.single()
+        val task = compilationResult.task
+        val jcontext = (task as BasicJavacTask).context
+        val types = Types.instance(jcontext)
+
+        val scanner = object : TreePathScanner<Unit, Unit>() {
+            override fun visitMethod(node: MethodTree, p: Unit) {
+                if (node.sym!!.name.toString() == "<init>") {
+                    println(node.sym!!.owner.type.toString())
+                    val mc = MethodContext(
+                        isStatic = false,
+                        key = JavacSymbolKey(node.sym!!),
+                        name = "<init>",
+                        methodOwner = node.sym!!.owner as ClassSymbol,
+                        types = types,
+                    )
+
+                    node.body.statements.forEach {
+                        if (it is ExpressionStatementTree && it.expression is MethodInvocationTree) {
+                            println(mc.invokeMethod(it.expression as MethodInvocationTree))
+                        }
+                    }
+                    println()
+                }
+            }
+        }
+
+        scanner.scan(cu, Unit)
+    }
+
+    @Test
     fun `identifier-variable-resolution`() {
         val compilationResult = compileJava("identifier-variable-resolution")
         val cu = compilationResult.cus.single()
